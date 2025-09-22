@@ -123,4 +123,4 @@ go run cmd/api/main.go
 ```
 
 * เมื่อรันคำสั่งนี้ โปรแกรมจะทำการ **Migrate** สร้างตารางที่จำเป็นทั้งหมด (`products`, `categories`, `carts`, `cart_items`, `orders`, `order_items`)
-* เซิร์ฟเวอร์จะเริ่มต้นทำงานที่ `http://localhost:8080` 
+* เซิร์ฟเวอร์จะเริ่มต้นทำงานที่ `http://localhost:8081` 
