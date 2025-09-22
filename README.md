@@ -86,15 +86,15 @@ Service นี้รับผิดชอบฟีเจอร์หลัก 3 
 
 ทำตามขั้นตอนทีละสเต็ป เพื่อเตรียมและรัน Service ในเครื่องของคุณ
 
-### Step 1 — Clone the Repository (Standard)
+### Step 1 — Clone the Repository (Standard) สำหรับใช้งานได้จริง
 
 ```bash
 git clone https://github.com/Wattanaroj2567/shop-service.git
 cd shop-service
 ```
 
-### Step 1 (Alt) — Direct Branch Clone
-
+### Step 1 (Alt) — Direct Branch Clone สำหรับผู้พัฒนาให้เริ่มต้นที่นี่เท่านั้น
+คำสั่งนี้จะ Clone โปรเจกต์ทั้งหมดมาที่เครื่องของคุณ โดยจะได้ Branch ของชื่อผู้รับผิดชอบตามที่ได้รับหน้าที่
 > เลือกใช้เมื่อทราบชื่อ branch ที่ต้องการทำงานแล้ว
 
 **สำหรับณัฐพงษ์ ดีบุตร (Product Catalog)**
