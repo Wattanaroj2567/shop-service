@@ -183,7 +183,7 @@ http://localhost:8081/swagger/index.html
 
 ### Step 1 — ติดตั้ง ngrok
 
-[ดาวน์โหลดได้ที่ ngrok.com](https://ngrok.com)
+ดาวน์โหลดได้ที่ [ngrok.com](https://ngrok.com)
 
 ### Step 2 — รัน Service
 
