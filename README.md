@@ -93,24 +93,6 @@ git clone https://github.com/Wattanaroj2567/shop-service.git
 cd shop-service
 ```
 
-### Step 1 (Alt) — Direct Branch Clone สำหรับผู้พัฒนาให้เริ่มต้นที่นี่เท่านั้น
-คำสั่งนี้จะ Clone โปรเจกต์ทั้งหมดมาที่เครื่องของคุณ โดยจะได้ Branch ของชื่อผู้รับผิดชอบตามที่ได้รับหน้าที่
-> เลือกใช้เมื่อทราบชื่อ branch ที่ต้องการทำงานแล้ว
-
-**สำหรับณัฐพงษ์ ดีบุตร (Product Catalog)**
-
-```bash
-git clone -b feature/product-catalog https://github.com/Wattanaroj2567/shop-service.git
-cd shop-service
-```
-
-**สำหรับวายุ กอคูณ (Cart & Order)**
-
-```bash
-git clone -b feature/cart-and-order https://github.com/Wattanaroj2567/shop-service.git
-cd shop-service
-```
-
 ### Step 2 — Install Dependencies
 
 ```bash
