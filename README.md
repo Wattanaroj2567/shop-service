@@ -84,73 +84,113 @@ Service นี้รับผิดชอบฟีเจอร์หลัก 3 
 
 ## 🚀 Getting Started
 
-ทำตามขั้นตอนเหล่านี้เพื่อตั้งค่าโปรเจกต์และรัน Service ในเครื่องของคุณ
+ทำตามขั้นตอนทีละสเต็ป เพื่อเตรียมและรัน Service ในเครื่องของคุณ
 
-### 1. Clone the Repository
+### Step 1 — Clone the Repository (Standard) สำหรับใช้งานได้จริง
 
 ```bash
 git clone https://github.com/Wattanaroj2567/shop-service.git
 cd shop-service
 ```
 
-### 2. Install Dependencies
+### Step 1 (Alt) — Direct Branch Clone สำหรับผู้พัฒนาให้เริ่มต้นที่นี่เท่านั้น
+คำสั่งนี้จะ Clone โปรเจกต์ทั้งหมดมาที่เครื่องของคุณ โดยจะได้ Branch ของชื่อผู้รับผิดชอบตามที่ได้รับหน้าที่
+> เลือกใช้เมื่อทราบชื่อ branch ที่ต้องการทำงานแล้ว
+
+**สำหรับวายุ กอคูณ (Cart & Order)**
+
+```bash
+git clone -b feature/cart-and-order https://github.com/Wattanaroj2567/shop-service.git
+cd shop-service
+```
+
+### Step 2 — Install Dependencies
 
 ```bash
 go mod tidy
 ```
 
-### 3. Setup Database
+### Step 3 — Setup Database
 
-* ตรวจสอบให้แน่ใจว่า PostgreSQL Server ของคุณทำงานอยู่
-* สร้างฐานข้อมูลสำหรับโปรเจกต์ (หากยังไม่มี):
+เลือกวิธีใดวิธีหนึ่ง
+
+**(A) ใช้ SQL โดยตรง**
 
 ```sql
 CREATE DATABASE gamegear_db;
 ```
 
-### 4. Configure Environment Variables
+**(B) ใช้ psql ผ่าน bash (one‑liner)**
 
-สร้างไฟล์ `.env` และใส่ค่าการเชื่อมต่อฐานข้อมูล (อย่าลืมแก้ `your_user` และ `your_password`)
+```bash
+psql -U your_user -h localhost -p 5432 -c "CREATE DATABASE gamegear_db;"
+```
+
+### Step 4 — Configure Environment Variables
+
+สร้างไฟล์ `.env` แล้วใส่ค่าเชื่อมต่อฐานข้อมูล
 
 ```env
 # PostgreSQL Database Connection URL
 DATABASE_URL="host=localhost user=your_user password=your_password dbname=gamegear_db port=5432 sslmode=disable"
 ```
 
-### 5. Run the Service
+### Step 5 — Run the Service
 
 ```bash
 go run cmd/api/main.go
 ```
 
-* เมื่อรันคำสั่งนี้ โปรแกรมจะทำการ **Migrate** สร้างตารางที่จำเป็นทั้งหมด (`products`, `categories`, `carts`, `cart_items`, `orders`, `order_items`)
-* เซิร์ฟเวอร์จะเริ่มต้นทำงานที่ `http://localhost:8081`
+> เมื่อรันคำสั่งนี้ ระบบจะทำการ **migrate** ตารางที่จำเป็นทั้งหมด และเซิร์ฟเวอร์จะเริ่มที่ `http://localhost:8081`
 
 ---
 
 ## 🤝 Remote Development (Working from Different Locations)
 
-เมื่อเพื่อนร่วมทีมต้องการเรียกใช้ Service นี้จากเครื่องของพวกเขา (เช่น `admin-service` ต้องการเรียกใช้ `shop-service`) เราจะใช้ **ngrok** เพื่อสร้าง URL สาธารณะชั่วคราว
+ต้องการให้เพื่อนร่วมทีมเข้าถึง `shop-service` ของคุณจากภายนอก? ใช้ **ngrok** ตามขั้นตอนนี้
 
-### How to Share Your Service
+### Step 1 — ติดตั้ง/ดาวน์โหลด ngrok
 
-1. ดาวน์โหลด **ngrok** จาก [ngrok.com](https://ngrok.com)
-2. รัน Service ของคุณตามปกติ
+ไปที่ [ngrok.com](https://ngrok.com) และติดตั้งตามระบบปฏิบัติการของคุณ
+
+### Step 2 — รัน User Service ในเครื่อง
 
 ```bash
 go run cmd/api/main.go
 ```
 
-3. เปิด Terminal ใหม่ขึ้นมา แล้วรันคำสั่งนี้เพื่อสร้าง "อุโมงค์" มายัง Port 8081 ของคุณ:
+### Step 3 — เปิดอุโมงค์ไปยังพอร์ต 8081
+
+เปิด Terminal ใหม่แล้วรัน
 
 ```bash
 ngrok http 8081
 ```
 
-4. ngrok จะแสดง URL สาธารณะ (ขึ้นต้นด้วย `https://...`) ขึ้นมา ให้คัดลอก URL นี้แล้วส่งให้เพื่อนร่วมทีมของคุณ
-5. เพื่อนของคุณจะนำ URL ที่ได้ไปใส่ในไฟล์ `.env` ของ Service ที่เขากำลังพัฒนาอยู่ (เช่น `admin-service`)
+### Step 4 — แชร์ URL ให้ทีม
+
+คัดลอก URL ที่ขึ้นต้นด้วย `https://...` ส่งให้เพื่อนร่วมทีม
+
+### Step 5 — เพื่อนนำ URL ไปตั้งใน .env (ฝั่ง admin-service)
 
 ```env
 # .env file on admin-service
 SHOP_SERVICE_URL="<THE_NGROK_URL_YOU_SENT>"
 ```
+
+---
+
+## 🌱 Branching Strategy
+
+เพื่อให้การทำงานร่วมกันของทีมเป็นไปอย่างราบรื่น เราจะใช้ Git Flow แบบง่าย โดยมี Branch หลักคือ `main` และ `develop`
+
+### Workflow
+
+* **ห้าม** Push Code ขึ้น `main` โดยตรง
+* `develop` = Branch หลักสำหรับการพัฒนา → ทุกงานต้อง Pull ล่าสุดมาก่อน
+* ทำงานบน **Feature Branch** ของตัวเองเสมอ:
+
+  * **ณัฐพงษ์ ดีบุตร (Product Catalog):** `feature/product-catalog`
+  * **วายุ กอคูณ (Cart & Order):** `feature/cart-and-order`
+* เมื่อทำฟีเจอร์เสร็จ → สร้าง Pull Request (PR) เข้าสู่ `develop`
+* เพื่อนอีกคนต้องช่วยตรวจสอบ (Code Review) ก่อน Merge
