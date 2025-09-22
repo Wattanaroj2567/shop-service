@@ -1,5 +1,9 @@
 # 🛍️ Shop Service
 
+![Go](https://img.shields.io/badge/Go-1.24.6-00ADD8?style=for-the-badge\&logo=go)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge\&logo=postgresql)
+![GORM](https://img.shields.io/badge/GORM-B93527?style=for-the-badge)
+
 Service หลักสำหรับจัดการประสบการณ์การซื้อขายทั้งหมดของโปรเจกต์ **GameGear E-commerce** ตั้งแต่การแสดงสินค้า, จัดการตะกร้า, ไปจนถึงการสร้างคำสั่งซื้อ
 
 ---
