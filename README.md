@@ -2,13 +2,77 @@
 
 บริการสำหรับจัดการประสบการณ์การซื้อขายทั้งหมดของโปรเจกต์ **GameGear E-commerce** ตั้งแต่การแสดงสินค้า, การจัดการตะกร้า, ไปจนถึงการสร้างคำสั่งซื้อ เป็นหนึ่งใน microservices ที่ทำงานร่วมกับ **Kong API Gateway**
 
+> 📖 **ดูเอกสารหลักของระบบ**: สำหรับ Kong Gateway setup, Architecture overview และการ integrate ทั้งระบบ → [Main README](https://github.com/Wattanaroj2567/Mini-Project-Golang.git)
+
 ---
 
 ## 🏛️ Architectural Design & Responsibility
 
-* เป็น **เจ้าของข้อมูล (Data Owner)** สำหรับตารางที่เกี่ยวข้องกับการซื้อขาย เช่น `products`, `carts`, `orders` เป็นต้น
-* ข้อมูลของสินค้าและคำสั่งซื้อ **จะไม่ถูกเข้าถึงโดยตรงจาก service อื่น** — ต้องเรียกผ่าน API ของ Shop Service เท่านั้น
-* บริการอื่น (Users, Admin) ที่ต้องการใช้ข้อมูลเหล่านี้ ต้องเรียกผ่าน Gateway เพื่อรักษาความถูกต้องและความปลอดภัยของข้อมูล
+- เป็น **เจ้าของข้อมูล (Data Owner)** สำหรับตารางที่เกี่ยวข้องกับการซื้อขาย เช่น `products`, `carts`, `orders` เป็นต้น
+- ข้อมูลของสินค้าและคำสั่งซื้อ **จะไม่ถูกเข้าถึงโดยตรงจาก service อื่น** — ต้องเรียกผ่าน API ของ Shop Service เท่านั้น
+- บริการอื่น (Users, Admin) ที่ต้องการใช้ข้อมูลเหล่านี้ ต้องเรียกผ่าน Gateway เพื่อรักษาความถูกต้องและความปลอดภัยของข้อมูล
+
+---
+
+## ✅ สิ่งที่ต้องทำ (สำหรับผู้พัฒนา Service นี้)
+
+> 👨‍💻 **Developers**:
+>
+> - **ณัฐพงษ์ ดีบุตร** - Product Catalog (branch: `feature/product-catalog`)
+> - **วายุ กอคูณ** - Cart & Order (branch: `feature/cart-and-order`)
+
+### 📝 ไฟล์ที่ต้องแก้ไข/เขียนโค้ด
+
+คุณต้องเขียนโค้ดเฉพาะใน **2 จุดหลัก**:
+
+#### 1. **`cmd/api/main.go`**
+
+- เริ่มต้น Gin server
+- Setup routes
+- Connect database
+- Middleware configuration
+
+#### 2. **โฟลเดอร์ `internal/`**
+
+| Folder               | ต้องทำ       | หมายเหตุ                                        |
+| -------------------- | ------------ | ----------------------------------------------- |
+| ✅ **handlers/**     | ✅ ต้องทำ    | เขียน HTTP handlers สำหรับ products/cart/orders |
+| ❌ **models/**       | ❌ ไม่ต้องทำ | **PM ทำให้แล้ว** (วรรธนโรจน์)                   |
+| ✅ **repositories/** | ✅ ต้องทำ    | เขียน database operations (CRUD)                |
+| ✅ **services/**     | ✅ ต้องทำ    | เขียน business logic                            |
+
+#### 3. **ไฟล์อื่นๆ**
+
+- ✅ **`.env`** - ตั้งค่า environment variables
+- ✅ **`go.mod`** - เพิ่ม dependencies ตามต้องการ
+
+### 🚫 ไฟล์ที่ไม่ต้องแก้
+
+- ❌ `internal/models/` - PM ทำให้แล้ว
+- ❌ `README.md` - มีให้แล้ว (แต่สามารถเพิ่มเติมได้)
+
+### 📋 Checklist
+
+**สำหรับ ณัฐพงษ์ (Products):**
+
+- [ ] เขียน `product_handler.go`
+- [ ] เขียน `product_repository.go`
+- [ ] เขียน `product_service.go`
+- [ ] API: GET /products, GET /products/:id, POST /products, PUT /products/:id, DELETE /products/:id
+
+**สำหรับ วายุ (Cart & Orders):**
+
+- [ ] เขียน `cart_order_handler.go`
+- [ ] เขียน `cart_order_repository.go`
+- [ ] เขียน `cart_order_service.go`
+- [ ] API: Cart (GET, POST, PUT, DELETE) + Orders (GET, POST)
+
+**ทั้งคู่:**
+
+- [ ] รวม routes ใน `cmd/api/main.go`
+- [ ] ตั้งค่า `.env`
+- [ ] ทดสอบ API ด้วย Swagger
+- [ ] ทดสอบผ่าน Kong Gateway
 
 ---
 
@@ -54,27 +118,20 @@ GET /healthz → 200 OK
 ├── .env.example
 ├── go.mod
 ├── go.sum
-├── Dockerfile.dev
-├── docker-compose.override.yml
-├── docker-compose.kong.yml
-├── .dockerignore
 └── README.md
 ```
 
 คำอธิบาย:
 
-* **cmd/api** — จุดเริ่มต้นของโปรแกรมหลัก (main entry point)
-* **internal/handlers** — ชั้นรับคำขอ (Request) และส่งผลลัพธ์กลับ (Response)
-* **internal/services** — ชั้นของ Business Logic ที่จัดการการทำงานหลักของระบบ
-* **internal/repositories** — ชั้นเชื่อมต่อกับฐานข้อมูล เช่น Query, Insert, Update, Delete
-* **internal/models** — กำหนดโครงสร้างข้อมูล (Struct) สำหรับ ORM (GORM)
-* **docs/swagger** — เอกสาร API ที่สร้างจาก `swag init`
-* **.env.example** — ตัวอย่างไฟล์ตั้งค่า environment variables
-* **Dockerfile.dev** — Dockerfile สำหรับโหมดพัฒนา (Dev Mode) พร้อม hot-reload ด้วย `air`
-* **docker-compose.override.yml** — ใช้รัน shop-service พร้อม PostgreSQL ในโหมดพัฒนา
-* **docker-compose.kong.yml** — ใช้เป็นแนวทางการเชื่อมต่อกับ Kong Gateway ตามสถาปัตยกรรมของโปรเจกต์หลัก (Mini-Project-Golang)
-* **.dockerignore** — รายการไฟล์/โฟลเดอร์ที่ไม่ต้องการนำเข้าเวลาสร้าง image
-* **README.md** — เอกสารอธิบายวิธีติดตั้งและใช้งาน service
+- **cmd/api** — จุดเริ่มต้นของโปรแกรมหลัก (main entry point)
+- **internal/handlers** — ชั้นรับคำขอ (Request) และส่งผลลัพธ์กลับ (Response)
+- **internal/services** — ชั้นของ Business Logic ที่จัดการการทำงานหลักของระบบ
+- **internal/repositories** — ชั้นเชื่อมต่อกับฐานข้อมูล เช่น Query, Insert, Update, Delete
+- **internal/models** — กำหนดโครงสร้างข้อมูล (Struct) สำหรับ ORM (GORM)
+- **docs/swagger** — เอกสาร API ที่สร้างจาก `swag init`
+- **.env.example** — ตัวอย่างไฟล์ตั้งค่า environment variables
+- **Kong Gateway** — จัดการโดย PM (วรรธนโรจน์) ใน admin-service
+- **README.md** — เอกสารอธิบายวิธีติดตั้งและใช้งาน service
 
 ---
 
@@ -132,88 +189,117 @@ go run cmd/api/main.go
 
 ---
 
-## 🐋 Run with Docker (Dev)
 
-### Dockerfile.dev
+## 🦍 Kong API Gateway Integration
 
-```dockerfile
-FROM golang:1.22-alpine
-RUN apk add --no-cache git bash build-base tzdata ca-certificates \
-    && update-ca-certificates \
-    && go install github.com/cosmtrek/air@latest
-WORKDIR /app
-COPY go.mod go.sum ./
-RUN go mod download
-COPY . .
-EXPOSE 8081
-CMD ["air"]
+Service นี้เป็นส่วนหนึ่งของระบบ Microservices ที่ใช้ **Kong Gateway** เป็นจุดเข้าถึงหลัก (API Gateway)
+
+> 👤 **ผู้ดูแล Kong Gateway**: วรรธนโรจน์ บุตรดี (Project Manager)  
+> 💡 **คำแนะนำ**: หากมีปัญหาเกี่ยวกับ Kong setup, Routes หรือ Plugins โปรดติดต่อผู้ดูแล
+
+### 🚀 Quick Start Options
+
+#### Option 1: รันพร้อม Kong + Konga (แนะนำสำหรับ Integration Testing)
+
+```bash
+# จาก root directory (GameGear-Ecommerce/)
+# Kong Gateway จัดการโดย PM ใน admin-service
+# สำหรับการทดสอบ service เดี่ยว ให้ใช้:
+go run cmd/api/main.go
 ```
 
-### docker-compose.override.yml
+**Services ที่จะรัน:**
 
-```yaml
-version: "3.9"
-services:
-  shop-db:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_DB: gamegear_shop_db
-      POSTGRES_USER: dev
-      POSTGRES_PASSWORD: dev
-    ports:
-      - "5433:5432"
+- 🦍 Kong Gateway (port 8000, 8001)
+- 🖥️ Konga Admin UI (port 1337)
+- 🛍️ Shop Service (port 8081)
+- 🗄️ PostgreSQL Databases (Kong, Konga, Shop)
 
-  shop-service:
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
-    environment:
-      DATABASE_URL: postgres://dev:dev@shop-db:5432/gamegear_shop_db?sslmode=disable
-      APPLICATION_PORT: 8081
-      JWT_SECRET_KEY: "supersecretkey"
-    ports:
-      - "8081:8081"
-    depends_on:
-      - shop-db
-    volumes:
-      - .:/app
+#### Option 2: รัน Service เดี่ยว (สำหรับ Local Development)
+
+```bash
+# จาก service directory
+go run cmd/api/main.go
 ```
 
-### docker-compose.kong.yml
+**Service ที่จะรัน:**
 
-```yaml
-version: "3.9"
-services:
-  shop-service:
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
-    container_name: shop-service
-    environment:
-      APPLICATION_PORT: 8081
-      DATABASE_URL: postgres://dev:dev@shop-db:5432/gamegear_shop_db?sslmode=disable
-    ports:
-      - "8081:8081"
-    networks:
-      - gamegear-network
-    depends_on:
-      - shop-db
+- 🛍️ Shop Service (port 8081)
 
-  shop-db:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_DB: gamegear_shop_db
-      POSTGRES_USER: dev
-      POSTGRES_PASSWORD: dev
-    networks:
-      - gamegear-network
+**หมายเหตุ:** ต้องมี PostgreSQL database รันอยู่แล้ว หรือใช้ cloud database
 
-networks:
-  gamegear-network:
-    external: true  # ใช้ network เดียวกับ Kong จากโปรเจกต์หลัก
+### 🌐 การใช้ ngrok สำหรับ External Access
+
+```bash
+# รัน service
+go run cmd/api/main.go
+
+# เปิด terminal ใหม่ และรัน ngrok
+ngrok http 8081
 ```
 
-> ไฟล์นี้ใช้เป็นแนวทางการเชื่อมต่อกับ Kong Gateway ตามสถาปัตยกรรมของโปรเจกต์หลัก (Mini-Project-Golang)
+**ผลลัพธ์:**
+
+- Service รันที่: `http://localhost:8081`
+- External URL: `https://abc123.ngrok.io` (สำหรับ PM เรียกใช้)
+
+---
+
+### 📍 API Endpoints
+
+| Access Method             | URL                                             | Use Case       | Note                      |
+| ------------------------- | ----------------------------------------------- | -------------- | ------------------------- |
+| **Via Kong Gateway**      | `http://localhost:8000/shop/*`                  | ✅ Production  | เรียกผ่าน Gateway (แนะนำ) |
+| **Direct Access**         | `http://localhost:8081/*`                       | 🔧 Development | เรียกตรง (Dev/Test only)  |
+| **Swagger UI (via Kong)** | `http://localhost:8000/shop/swagger/index.html` | 📖 API Docs    | ผ่าน Gateway              |
+| **Swagger UI (direct)**   | `http://localhost:8081/swagger/index.html`      | 📖 API Docs    | เรียกตรง                  |
+
+### 🔧 Kong Configuration
+
+หากต้องการตั้งค่า Service นี้ใน Kong Gateway:
+
+1. **เปิด Konga UI**: http://localhost:1337
+2. **เพิ่ม Service**:
+   ```
+   Name: shop-service
+   Protocol: http
+   Host: host.docker.internal
+   Port: 8081
+   Path: /
+   ```
+3. **เพิ่ม Route**:
+   ```
+   Name: shop-route
+   Paths: /shop
+   Strip Path: false
+   ```
+
+### 🧪 ทดสอบการเชื่อมต่อ
+
+```bash
+# ทดสอบผ่าน Kong Gateway
+curl http://localhost:8000/shop/healthz
+
+# ทดสอบเรียกตรง (Dev only)
+curl http://localhost:8081/healthz
+
+# ทดสอบดูสินค้าทั้งหมด via Kong
+curl http://localhost:8000/shop/products
+
+# ทดสอบดูรายละเอียดสินค้า
+curl http://localhost:8000/shop/products/1
+```
+
+### 📖 เอกสารเพิ่มเติม
+
+สำหรับข้อมูลเพิ่มเติมเกี่ยวกับ Kong Gateway และการตั้งค่าทั้งระบบ:
+
+- **Kong + Konga Setup Guide**: [Main README - Kong Setup](../Mini-Project-Golang/README.md#-quick-start-ติดตั้งและรัน-kong--konga)
+- **System Architecture**: [Main README - Architecture](../Mini-Project-Golang/README.md#%EF%B8%8F-system-architecture-overview)
+- **Ports Summary**: [Main README - Ports](../Mini-Project-Golang/README.md#-ports-summary)
+- **Troubleshooting**: [Main README - Troubleshooting](../Mini-Project-Golang/README.md#-troubleshooting)
+
+> 💡 **หมายเหตุ**: สำหรับการ setup Kong, Konga และ Plugins (CORS, JWT, Rate Limiting) โปรดดูเอกสารหลักที่ [Main README](../Mini-Project-Golang/README.md)
 
 ---
 
@@ -286,6 +372,6 @@ SHOP_SERVICE_URL=https://abc1234.ngrok.io
 
 ## ✅ Summary
 
-* README นี้อัปเดตให้สอดคล้องกับ **แนวทางหลักของโปรเจกต์ Mini-Project-Golang**
-* รองรับทั้งการพัฒนา, ทดสอบ และเชื่อมต่อกับ Kong Gateway
-* มีวิธีรันแบบ local, Docker, Swagger, Kong Integration และ Remote Dev พร้อมใช้งานจริง
+- README นี้อัปเดตให้สอดคล้องกับ **แนวทางหลักของโปรเจกต์ Mini-Project-Golang**
+- รองรับทั้งการพัฒนา, ทดสอบ และเชื่อมต่อกับ Kong Gateway
+- มีวิธีรันแบบ local, Docker, Swagger, Kong Integration และ Remote Dev พร้อมใช้งานจริง
