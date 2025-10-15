@@ -27,31 +27,90 @@ func NewProductRepository(db *gorm.DB) ProductRepository {
 }
 
 func (r *productRepository) List(ctx context.Context, filter models.ProductFilter) ([]models.Product, error) {
-	// TODO: implement catalogue query filtered by pagination/category/search
-	return nil, nil
+	var products []models.Product
+
+	query := r.db.WithContext(ctx)
+
+	// Apply category filter
+	if filter.Category != "" {
+		query = query.Where("category_id = ?", filter.Category)
+	}
+
+	// Apply search filter (search in name and description)
+	if filter.Search != "" {
+		searchPattern := "%" + filter.Search + "%"
+		query = query.Where("name ILIKE ? OR description ILIKE ?", searchPattern, searchPattern)
+	}
+
+	// Apply pagination
+	offset := (filter.Page - 1) * filter.Limit
+	query = query.Offset(offset).Limit(filter.Limit)
+
+	// Order by ID descending (newest first)
+	query = query.Order("id DESC")
+
+	// Execute query
+	if err := query.Find(&products).Error; err != nil {
+		return nil, err
+	}
+
+	return products, nil
 }
 
 func (r *productRepository) Count(ctx context.Context, filter models.ProductFilter) (int64, error) {
-	// TODO: implement count for pagination metadata
-	return 0, nil
+	var count int64
+
+	query := r.db.WithContext(ctx).Model(&models.Product{})
+
+	// Apply category filter
+	if filter.Category != "" {
+		query = query.Where("category_id = ?", filter.Category)
+	}
+
+	// Apply search filter (search in name and description)
+	if filter.Search != "" {
+		searchPattern := "%" + filter.Search + "%"
+		query = query.Where("name ILIKE ? OR description ILIKE ?", searchPattern, searchPattern)
+	}
+
+	// Count records
+	if err := query.Count(&count).Error; err != nil {
+		return 0, err
+	}
+
+	return count, nil
 }
 
 func (r *productRepository) FindByID(ctx context.Context, id uint) (*models.Product, error) {
-	// TODO: implement find by ID
-	return nil, nil
+	var product models.Product
+
+	if err := r.db.WithContext(ctx).First(&product, id).Error; err != nil {
+		return nil, err
+	}
+
+	return &product, nil
 }
 
 func (r *productRepository) Create(ctx context.Context, product *models.Product) error {
-	// TODO: implement create product
+	if err := r.db.WithContext(ctx).Create(product).Error; err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (r *productRepository) Update(ctx context.Context, product *models.Product) error {
-	// TODO: implement update product
+	if err := r.db.WithContext(ctx).Save(product).Error; err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (r *productRepository) Delete(ctx context.Context, id uint) error {
-	// TODO: implement delete product
+	if err := r.db.WithContext(ctx).Delete(&models.Product{}, id).Error; err != nil {
+		return err
+	}
+
 	return nil
 }

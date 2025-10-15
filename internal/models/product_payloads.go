@@ -1,5 +1,11 @@
 package models
 
+// ErrorResponse represents error payloads returned by API.
+type ErrorResponse struct {
+	Error   string `json:"error"`
+	Message string `json:"message"`
+}
+
 // ProductFilter captures query parameters for browsing products.
 type ProductFilter struct {
 	Page     int    `form:"page"`
