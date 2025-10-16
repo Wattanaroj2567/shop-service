@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/gamegear/shop-service/internal/models"
 	"github.com/gamegear/shop-service/internal/services"
 	"github.com/gin-gonic/gin"
 )
@@ -17,26 +18,88 @@ func NewCartHandler(cartService services.CartService) *CartHandler {
 	return &CartHandler{cartService: cartService}
 }
 
-// GetActive handles GET /api/cart.
-func (h *CartHandler) GetActive(c *gin.Context) {
-	// TODO: derive userID from auth context, invoke cartService.GetActiveCart
-	c.JSON(http.StatusNotImplemented, gin.H{"message": "TODO: implement get cart handler"})
+// GetCart handles GET /api/cart.
+func (h *CartHandler) GetCart(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	cart, err := h.cartService.GetCart(c.Request.Context(), userID.(uint))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, cart)
 }
 
 // AddItem handles POST /api/cart/add.
 func (h *CartHandler) AddItem(c *gin.Context) {
-	// TODO: bind request, call cartService.AddItem
-	c.JSON(http.StatusNotImplemented, gin.H{"message": "TODO: implement add to cart handler"})
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	var req models.AddToCartRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	cart, err := h.cartService.AddItem(c.Request.Context(), userID.(uint), req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, cart)
 }
 
 // UpdateItem handles PUT /api/cart/update.
 func (h *CartHandler) UpdateItem(c *gin.Context) {
-	// TODO: bind request, call cartService.UpdateItem
-	c.JSON(http.StatusNotImplemented, gin.H{"message": "TODO: implement update cart handler"})
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	var req models.UpdateCartItemRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	cart, err := h.cartService.UpdateItem(c.Request.Context(), userID.(uint), req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, cart)
 }
 
 // RemoveItem handles DELETE /api/cart/remove.
 func (h *CartHandler) RemoveItem(c *gin.Context) {
-	// TODO: bind request, call cartService.RemoveItem
-	c.JSON(http.StatusNotImplemented, gin.H{"message": "TODO: implement remove cart handler"})
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	var req models.RemoveCartItemRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	cart, err := h.cartService.RemoveItem(c.Request.Context(), userID.(uint), req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, cart)
 }

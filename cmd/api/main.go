@@ -52,7 +52,7 @@ func main() {
 	// Wire services.
 	productService := services.NewProductService(productRepo)
 	cartService := services.NewCartService(cartRepo, cartItemRepo, productRepo)
-	orderService := services.NewOrderService(orderRepo, cartRepo)
+	orderService := services.NewOrderService(orderRepo, cartRepo, cartItemRepo)
 
 	// Wire handlers.
 	productHandler := handlers.NewProductHandler(productService)
