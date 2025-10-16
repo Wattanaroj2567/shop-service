@@ -6,8 +6,10 @@ import (
 	"os"
 
 	"github.com/gamegear/shop-service/internal/handlers"
+	"github.com/gamegear/shop-service/internal/middleware"
 	"github.com/gamegear/shop-service/internal/models"
 	"github.com/gamegear/shop-service/internal/repositories"
+	"github.com/gamegear/shop-service/internal/security"
 	"github.com/gamegear/shop-service/internal/services"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -59,6 +61,19 @@ func main() {
 	cartHandler := handlers.NewCartHandler(cartService)
 	orderHandler := handlers.NewOrderHandler(orderService)
 
+	jwtSecret := os.Getenv("JWT_SECRET_KEY")
+	if jwtSecret == "" {
+		log.Fatal("JWT_SECRET_KEY is required")
+	}
+
+	tokenValidator, err := security.NewValidator(jwtSecret)
+	if err != nil {
+		log.Fatalf("failed to create token validator: %v", err)
+	}
+
+	memberMiddleware := middleware.RequireRoles(tokenValidator)
+	adminMiddleware := middleware.RequireRoles(tokenValidator, "admin")
+
 	// Setup Gin router with logging/recovery middleware.
 	router := gin.New()
 	router.Use(gin.Logger(), gin.Recovery())
@@ -69,7 +84,7 @@ func main() {
 	})
 
 	// Register REST endpoints that align with README specification.
-	handlers.RegisterRoutes(router, productHandler, cartHandler, orderHandler)
+	handlers.RegisterRoutes(router, productHandler, cartHandler, orderHandler, memberMiddleware, adminMiddleware)
 
 	port := os.Getenv("APPLICATION_PORT")
 	if port == "" {

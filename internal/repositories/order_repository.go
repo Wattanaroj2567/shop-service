@@ -12,6 +12,8 @@ type OrderRepository interface {
 	Create(ctx context.Context, order *models.Order) error
 	FindHistoryByUserID(ctx context.Context, userID uint) ([]models.Order, error)
 	FindByID(ctx context.Context, orderID uint) (*models.Order, error)
+	FindAll(ctx context.Context) ([]models.Order, error)
+	UpdateStatus(ctx context.Context, orderID uint, status string) error
 }
 
 type orderRepository struct {
@@ -54,4 +56,26 @@ func (r *orderRepository) FindByID(ctx context.Context, orderID uint) (*models.O
 		return nil, err
 	}
 	return &order, nil
+}
+
+func (r *orderRepository) FindAll(ctx context.Context) ([]models.Order, error) {
+	var orders []models.Order
+	err := r.db.WithContext(ctx).
+		Order("created_at desc").
+		Find(&orders).Error
+	return orders, err
+}
+
+func (r *orderRepository) UpdateStatus(ctx context.Context, orderID uint, status string) error {
+	result := r.db.WithContext(ctx).
+		Model(&models.Order{}).
+		Where("id = ?", orderID).
+		Update("status", status)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
 }

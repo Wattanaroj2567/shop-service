@@ -110,3 +110,80 @@ func (h *ProductHandler) Get(c *gin.Context) {
 		"data": product,
 	})
 }
+
+// Create handles POST /api/products (admin).
+func (h *ProductHandler) Create(c *gin.Context) {
+	var req models.ProductRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Error:   "Bad Request",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	product, err := h.productService.Create(c.Request.Context(), req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error:   "Internal Server Error",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"data": product})
+}
+
+// Update handles PUT /api/products/:id (admin).
+func (h *ProductHandler) Update(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Error:   "Bad Request",
+			Message: "Invalid product ID",
+		})
+		return
+	}
+
+	var req models.ProductRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Error:   "Bad Request",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	product, err := h.productService.Update(c.Request.Context(), uint(id), req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error:   "Internal Server Error",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": product})
+}
+
+// Delete handles DELETE /api/products/:id (admin).
+func (h *ProductHandler) Delete(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Error:   "Bad Request",
+			Message: "Invalid product ID",
+		})
+		return
+	}
+
+	if err := h.productService.Delete(c.Request.Context(), uint(id)); err != nil {
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error:   "Internal Server Error",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}

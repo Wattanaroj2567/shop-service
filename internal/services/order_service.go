@@ -7,6 +7,14 @@ import (
 
 	"github.com/gamegear/shop-service/internal/models"
 	"github.com/gamegear/shop-service/internal/repositories"
+	"gorm.io/gorm"
+)
+
+var (
+	// ErrOrderNotFound indicates the requested order does not exist.
+	ErrOrderNotFound = errors.New("order not found")
+	// ErrInvalidOrderStatus indicates the supplied status is not supported.
+	ErrInvalidOrderStatus = errors.New("invalid order status")
 )
 
 // OrderService coordinates checkout lifecycle.
@@ -14,6 +22,8 @@ type OrderService interface {
 	Create(ctx context.Context, userID uint, req models.CreateOrderRequest) (*models.OrderDetail, error)
 	History(ctx context.Context, userID uint) ([]models.OrderSummary, error)
 	GetByID(ctx context.Context, userID uint, orderID uint) (*models.OrderDetail, error)
+	ListAll(ctx context.Context) ([]models.AdminOrderSummary, error)
+	UpdateStatus(ctx context.Context, orderID uint, status string) (*models.OrderDetail, error)
 }
 
 type orderService struct {
@@ -44,7 +54,7 @@ func (s *orderService) Create(ctx context.Context, userID uint, req models.Creat
 	// 2. Create Order and OrderItems from Cart
 	order := &models.Order{
 		UserID:          userID,
-		CartID:          cart.ID, // Link order to the cart
+		CartID:          cart.ID,   // Link order to the cart
 		Status:          "pending", // Initial status
 		Total:           cart.Total,
 		ShippingAddress: req.ShippingAddress,
@@ -110,6 +120,56 @@ func (s *orderService) GetByID(ctx context.Context, userID uint, orderID uint) (
 		return nil, errors.New("unauthorized")
 	}
 
+	return mapOrderToDetail(order), nil
+}
+
+func (s *orderService) ListAll(ctx context.Context) ([]models.AdminOrderSummary, error) {
+	orders, err := s.orderRepo.FindAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	summaries := make([]models.AdminOrderSummary, len(orders))
+	for i, order := range orders {
+		summaries[i] = models.AdminOrderSummary{
+			ID:              order.ID,
+			UserID:          order.UserID,
+			Status:          order.Status,
+			Total:           order.Total,
+			PaymentMethod:   order.PaymentMethod,
+			ShippingAddress: order.ShippingAddress,
+			CreatedAt:       order.CreatedAt,
+			UpdatedAt:       order.UpdatedAt,
+		}
+	}
+
+	return summaries, nil
+}
+
+func (s *orderService) UpdateStatus(ctx context.Context, orderID uint, status string) (*models.OrderDetail, error) {
+	if !models.IsValidOrderStatus(status) {
+		return nil, fmt.Errorf("%w: %s", ErrInvalidOrderStatus, status)
+	}
+
+	if err := s.orderRepo.UpdateStatus(ctx, orderID, status); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrOrderNotFound
+		}
+		return nil, err
+	}
+
+	order, err := s.orderRepo.FindByID(ctx, orderID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrOrderNotFound
+		}
+		return nil, err
+	}
+
+	return mapOrderToDetail(order), nil
+}
+
+func mapOrderToDetail(order *models.Order) *models.OrderDetail {
 	// Map to detail DTO
 	items := make([]models.OrderItemDetail, len(order.OrderItems))
 	for i, item := range order.OrderItems {
@@ -137,5 +197,5 @@ func (s *orderService) GetByID(ctx context.Context, userID uint, orderID uint) (
 		ShippingAddress: order.ShippingAddress,
 		Notes:           order.Notes,
 		Items:           items,
-	}, nil
+	}
 }

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -84,4 +85,50 @@ func (h *OrderHandler) GetByID(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, order)
+}
+
+// ListAll handles GET /api/orders for administrators.
+func (h *OrderHandler) ListAll(c *gin.Context) {
+	orders, err := h.orderService.ListAll(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": orders})
+}
+
+// UpdateStatus handles PUT /api/orders/:id/status for administrators.
+func (h *OrderHandler) UpdateStatus(c *gin.Context) {
+	orderID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid order ID"})
+		return
+	}
+
+	var req models.UpdateOrderStatusRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	if req.Status == "" || !models.IsValidOrderStatus(req.Status) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid order status"})
+		return
+	}
+
+	order, err := h.orderService.UpdateStatus(c.Request.Context(), uint(orderID), req.Status)
+	if err != nil {
+		switch {
+		case errors.Is(err, services.ErrInvalidOrderStatus):
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		case errors.Is(err, services.ErrOrderNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"error": "Order not found"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": order})
 }

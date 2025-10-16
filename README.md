@@ -13,7 +13,6 @@
 - [📂 โครงสร้างโปรเจค (Project Structure)](#-โครงสร้างโปรเจค-project-structure)
 - [📦 Module Structure](#-module-structure)
 - [🚀 เริ่มต้นใช้งาน (Getting Started)](#-เริ่มต้นใช้งาน-getting-started)
-- [🔁 Remote Development (ngrok หรือ Tunnel)](#-remote-development-ngrok-หรือ-tunnel)
 - [📝 API Documentation](#-api-documentation)
 - [📞 ติดต่อและสนับสนุน](#-ติดต่อและสนับสนุน)
 
@@ -29,6 +28,8 @@
 
 ## ✨ คุณสมบัติและ Endpoints
 
+### ลูกค้าทั่วไป (Member Endpoints)
+
 | Feature              | Method | Path                      | Auth Required        | Description                                   |
 | -------------------- | ------ | ------------------------- | -------------------- | --------------------------------------------- |
 | Browse Products      | GET    | `/api/products`          | No                   | ดูรายการสินค้า พร้อมตัวกรองและแบ่งหน้า     |
@@ -40,7 +41,17 @@
 | Checkout Order       | POST   | `/api/orders`            | Yes (Member JWT)     | สร้างคำสั่งซื้อจากตะกร้า                     |
 | Order History        | GET    | `/api/orders/history`    | Yes (Member JWT)     | ดูประวัติคำสั่งซื้อของตนเอง                 |
 
-> ℹ️ **หมายเหตุ**: การเพิ่ม/แก้ไข/ลบสินค้าเป็นความรับผิดชอบของ `admin-service` เท่านั้น
+### ผู้ดูแลระบบ (Admin Endpoints) — ใช้ผ่าน Kong คู่กับ JWT ที่มี `role=admin`
+
+| Feature                 | Method | Path                       | Auth Required    | Description                                                          |
+| ----------------------- | ------ | -------------------------- | ---------------- | -------------------------------------------------------------------- |
+| Create Product          | POST   | `/api/products`           | Yes (Admin JWT)  | เพิ่มสินค้าใหม่ลงฐานข้อมูล                                          |
+| Update Product          | PUT    | `/api/products/:id`       | Yes (Admin JWT)  | แก้ไขข้อมูลสินค้าเดิม                                                |
+| Delete Product          | DELETE | `/api/products/:id`       | Yes (Admin JWT)  | ลบสินค้าออกจากระบบ                                                   |
+| List All Orders         | GET    | `/api/orders`             | Yes (Admin JWT)  | ดูคำสั่งซื้อทั้งหมดในระบบ (สำหรับแดชบอร์ดผู้ดูแล)                  |
+| Update Order Status     | PUT    | `/api/orders/:id/status`  | Yes (Admin JWT)  | เปลี่ยนสถานะคำสั่งซื้อ (`pending`, `processing`, `shipped`, ฯลฯ)    |
+
+> 🔐 **หมายเหตุ**: admin-service จะเรียก endpoint เหล่านี้ผ่าน Kong เช่น `http://localhost:8000/shop/api/products` โดยต้องแนบ JWT จาก users-service ที่มี `role=admin` เสมอ
 
 นอกจากนี้ ควรมี endpoint สำหรับ **Healthcheck**:
 
@@ -63,6 +74,8 @@ GET /healthz → 200 OK
 │   │   ├── order_handler.go
 │   │   ├── product_handler.go
 │   │   └── routes.go
+│   ├── middleware/
+│   │   └── auth.go
 │   ├── services/
 │   │   ├── cart_service.go
 │   │   ├── order_service.go
@@ -72,11 +85,14 @@ GET /healthz → 200 OK
 │   │   ├── cart_repository.go
 │   │   ├── order_repository.go
 │   │   └── product_repository.go
+│   ├── security/
+│   │   └── token_validator.go
 │   └── models/
 │       ├── cart_model.go
 │       ├── cart_payloads.go
 │       ├── order_model.go
 │       ├── order_payloads.go
+│       ├── order_admin_payloads.go
 │       ├── product_model.go
 │       └── product_payloads.go
 ├── .env.example
@@ -88,24 +104,27 @@ GET /healthz → 200 OK
 
 คำอธิบายไฟล์:
 
-- `cmd/api/main.go` — บูต service, เชื่อม DB, migrate model และประกาศ route ตาม README
-- `internal/handlers/product_handler.go` — รับคำขอ `/api/products` และ `/api/products/:id`
+- `cmd/api/main.go` — บูต service, เชื่อม DB, migrate model, อ่าน `JWT_SECRET_KEY` และประกาศ route พร้อม middleware
+- `internal/handlers/product_handler.go` — รับคำขอ `/api/products` ทั้ง read (สาธารณะ) และ admin CRUD
 - `internal/handlers/cart_handler.go` — จัดการ `/api/cart`, `/api/cart/add`, `/api/cart/update`, `/api/cart/remove`
-- `internal/handlers/order_handler.go` — จัดการ `/api/orders` และ `/api/orders/:id` รวมถึง history
-- `internal/handlers/routes.go` — รวมการประกาศ route ทั้งหมดลงใน Gin engine
-- `internal/services/product_service.go` — โครง logic สำหรับค้นหา/จัดการสินค้า 
+- `internal/handlers/order_handler.go` — จัดการ `/api/orders` สำหรับสมาชิก และ `/api/orders`, `/api/orders/:id/status` สำหรับแอดมิน
+- `internal/handlers/routes.go` — รวมการประกาศ route ทั้งหมด พร้อม inject middleware แยก member/admin
+- `internal/middleware/auth.go` — Gin middleware สำหรับตรวจสอบ JWT และ role (`member`, `admin`)
+- `internal/services/product_service.go` — โครง logic สำหรับค้นหา/จัดการสินค้า (list + admin create/update/delete)
 - `internal/services/cart_service.go` — โครง logic สำหรับจัดการตะกร้าสินค้า
-- `internal/services/order_service.go` — โครง logic สำหรับสร้างคำสั่งซื้อและดึงประวัติ
+- `internal/services/order_service.go` — โครง logic สำหรับสร้างคำสั่งซื้อ, ดึงประวัติ, และ admin list/update status
 - `internal/repositories/product_repository.go` — ทำงานกับตาราง `products`
 - `internal/repositories/cart_repository.go` — จัดการตาราง `carts`
 - `internal/repositories/cart_item_repository.go` — จัดการตาราง `cart_items`
-- `internal/repositories/order_repository.go` — ทำงานกับตาราง `orders` และ `order_items`
+- `internal/repositories/order_repository.go` — ทำงานกับตาราง `orders` และ `order_items` รวมถึง update status
+- `internal/security/token_validator.go` — Utility สำหรับตรวจสอบความถูกต้องของ JWT ด้วย secret
 - `internal/models/product_model.go` — GORM model ของสินค้า (ฟิลด์สอดคล้อง README)
 - `internal/models/cart_model.go` — GORM model สำหรับตะกร้าและรายการสินค้าในตะกร้า
 - `internal/models/order_model.go` — GORM model สำหรับคำสั่งซื้อและรายการภายในคำสั่งซื้อ
 - `internal/models/product_payloads.go` — DTO สำหรับ filter, create, update, response ของสินค้า
 - `internal/models/cart_payloads.go` — DTO สำหรับการเพิ่ม/แก้ไข/ลบสินค้าและการตอบกลับตะกร้า
 - `internal/models/order_payloads.go` — DTO สำหรับสร้างคำสั่งซื้อ, รายการประวัติ, และรายละเอียดคำสั่งซื้อ
+- `internal/models/order_admin_payloads.go` — DTO สำหรับ admin list orders และคำขออัปเดตสถานะ
 - **.env.example** — ตัวอย่างไฟล์สำหรับตั้งค่าคอนฟิก เช่น Database URL, JWT, Email
 - **README.md** — เอกสารอธิบายรายละเอียดการติดตั้งและใช้งาน Service
 
@@ -176,7 +195,7 @@ LOG_FILE="logs/shop-service.log"
 
 **💡 หมายเหตุ:**
 
-- **JWT_SECRET_KEY**: ใช้คีย์เดียวกับ users-service หรือสร้างใหม่
+- **JWT_SECRET_KEY**: ต้องใช้ค่าเดียวกับ users-service เพื่อให้ middleware ตรวจสอบ token ข้าม service ได้
 - **Database Password**: ใช้รหัสผ่าน PostgreSQL ของคุณ
 - **Payment Method**: เป็นการจำลอง (Mock) - ไม่ต้องเชื่อมต่อ Payment Gateway จริง
 - **ไฟล์ `.env.example`**: เก็บไว้เป็น template สำหรับครั้งต่อไป
@@ -202,9 +221,11 @@ LOG_FILE="logs/shop-service.log"
 | Folder               | ต้องทำ       | หมายเหตุ                                        |
 | -------------------- | ------------ | ----------------------------------------------- |
 | ✅ **handlers/**     | ✅ ต้องทำ    | เขียน HTTP handlers สำหรับ products/cart/orders |
+| ✅ **middleware/**   | ✅ ต้องทำ    | เขียน/ปรับ Middleware สำหรับตรวจสอบ JWT & role |
 | ❌ **models/**       | ❌ ไม่ต้องทำ | **PM ทำให้แล้ว** (วรรธนโรจน์)                   |
 | ✅ **repositories/** | ✅ ต้องทำ    | เขียน database operations (CRUD)                |
 | ✅ **services/**     | ✅ ต้องทำ    | เขียน business logic                            |
+| ❌ **security/**     | ❌ ไม่ต้องทำ | PM เตรียม `token_validator.go` สำหรับ reuse     |
 
 > 💡 **หมายเหตุ**: ในโค้ดจะมี **TODO comments** บอกว่าต้องทำอะไรบ้าง ให้ทำตามที่ระบุไว้ในโค้ด
 
@@ -363,28 +384,6 @@ git push origin main
 | `main`                    | Production Ready        | PM      |
 
 ---
-
-## 🔁 Remote Development (ngrok หรือ Tunnel)
-
-สำหรับการพัฒนาแบบทีม ให้ใช้ ngrok เพื่อให้เพื่อนร่วมทีมเข้าถึง service นี้:
-
-```bash
-# รัน service
-go run cmd/api/main.go
-
-# เปิด terminal ใหม่ และรัน ngrok
-ngrok http 8082
-```
-
-**ผลลัพธ์:**
-
-- Service รันที่: `http://localhost:8082`
-- External URL: `https://abc123.ngrok.io` (แชร์ให้เพื่อนร่วมทีม)
-
-> 📖 **ดูรายละเอียดเพิ่มเติม**: [Main README - Remote Development](https://github.com/Wattanaroj2567/Mini-Project-Golang#-remote-development-ngrok-หรือ-tunne)
-
----
-
 ## 📦 Module Structure
 
 Service นี้ใช้ Go Module สำหรับจัดการ dependencies:
