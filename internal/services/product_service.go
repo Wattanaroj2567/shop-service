@@ -26,26 +26,99 @@ func NewProductService(productRepo repositories.ProductRepository) ProductServic
 }
 
 func (s *productService) List(ctx context.Context, filter models.ProductFilter) ([]models.ProductResponse, int64, error) {
-	// TODO: query repository, map entities to responses, return with total count
-	return nil, 0, nil
+	// Get products from repository
+	products, err := s.productRepo.List(ctx, filter)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Get total count for pagination
+	totalCount, err := s.productRepo.Count(ctx, filter)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Map products to responses
+	responses := make([]models.ProductResponse, len(products))
+	for i, product := range products {
+		responses[i] = mapProductToResponse(&product)
+	}
+
+	return responses, totalCount, nil
 }
 
 func (s *productService) GetByID(ctx context.Context, id uint) (*models.ProductResponse, error) {
-	// TODO: fetch single product and map to response
-	return nil, nil
+	// Get product from repository
+	product, err := s.productRepo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	// Map to response
+	response := mapProductToResponse(product)
+	return &response, nil
 }
 
 func (s *productService) Create(ctx context.Context, req models.ProductRequest) (*models.ProductResponse, error) {
-	// TODO: validate payload, persist product, map to response
-	return nil, nil
+	// Map request to product entity
+	product := models.Product{
+		Name:        req.Name,
+		Description: req.Description,
+		Price:       req.Price,
+		Stock:       req.Stock,
+		CategoryID:  req.CategoryID,
+		ImageURL:    req.ImageURL,
+	}
+
+	// Save to repository
+	if err := s.productRepo.Create(ctx, &product); err != nil {
+		return nil, err
+	}
+
+	// Map to response
+	response := mapProductToResponse(&product)
+	return &response, nil
 }
 
 func (s *productService) Update(ctx context.Context, id uint, req models.ProductRequest) (*models.ProductResponse, error) {
-	// TODO: update product fields and map to response
-	return nil, nil
+	// Find existing product
+	product, err := s.productRepo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	// Update fields
+	product.Name = req.Name
+	product.Description = req.Description
+	product.Price = req.Price
+	product.Stock = req.Stock
+	product.CategoryID = req.CategoryID
+	product.ImageURL = req.ImageURL
+
+	// Save to repository
+	if err := s.productRepo.Update(ctx, product); err != nil {
+		return nil, err
+	}
+
+	// Map to response
+	response := mapProductToResponse(product)
+	return &response, nil
 }
 
 func (s *productService) Delete(ctx context.Context, id uint) error {
-	// TODO: delete product (soft delete/hard delete as per requirements)
-	return nil
+	// Delete from repository
+	return s.productRepo.Delete(ctx, id)
+}
+
+// mapProductToResponse converts Product entity to ProductResponse DTO.
+func mapProductToResponse(product *models.Product) models.ProductResponse {
+	return models.ProductResponse{
+		ID:          product.ID,
+		Name:        product.Name,
+		Description: product.Description,
+		Price:       product.Price,
+		Stock:       product.Stock,
+		CategoryID:  product.CategoryID,
+		ImageURL:    product.ImageURL,
+	}
 }
