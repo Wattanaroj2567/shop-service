@@ -14,7 +14,7 @@ func RegisterRoutes(
 	api.GET("/products", productHandler.List)
 	api.GET("/products/:id", productHandler.Get)
 
-	api.GET("/cart", cartHandler.GetActive)
+	api.GET("/cart", cartHandler.GetCart)
 	api.POST("/cart/add", cartHandler.AddItem)
 	api.PUT("/cart/update", cartHandler.UpdateItem)
 	api.DELETE("/cart/remove", cartHandler.RemoveItem)
