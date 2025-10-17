@@ -92,24 +92,39 @@ func (r *productRepository) FindByID(ctx context.Context, id uint) (*models.Prod
 }
 
 func (r *productRepository) Create(ctx context.Context, product *models.Product) error {
-	if err := r.db.WithContext(ctx).Create(product).Error; err != nil {
-		return err
+	result := r.db.WithContext(ctx).Create(product)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return gorm.ErrInvalidData
 	}
 
 	return nil
 }
 
 func (r *productRepository) Update(ctx context.Context, product *models.Product) error {
-	if err := r.db.WithContext(ctx).Save(product).Error; err != nil {
-		return err
+	result := r.db.WithContext(ctx).Save(product)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
 	}
 
 	return nil
 }
 
 func (r *productRepository) Delete(ctx context.Context, id uint) error {
-	if err := r.db.WithContext(ctx).Delete(&models.Product{}, id).Error; err != nil {
-		return err
+	result := r.db.WithContext(ctx).Delete(&models.Product{}, id)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
 	}
 
 	return nil
